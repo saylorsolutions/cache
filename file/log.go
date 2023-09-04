@@ -33,3 +33,15 @@ func (s stdLog) UnrelatedEvent(_ fsnotify.Event) {
 func (s stdLog) Error(err error) {
 	log.Printf("fs-event: ERROR: %v\n", err)
 }
+
+type noOpNofifyLog struct{}
+
+func (n *noOpNofifyLog) Event(_ fsnotify.Event) {}
+
+func (n *noOpNofifyLog) UnrelatedEvent(_ fsnotify.Event) {}
+
+func (n *noOpNofifyLog) Error(_ error) {}
+
+func newNoOpNotifyLog() NotifyLog {
+	return &noOpNofifyLog{}
+}

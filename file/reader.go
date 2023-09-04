@@ -50,6 +50,10 @@ func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(i
 		return nil, fmt.Errorf("unable to create filesystem watcher: %w", err)
 	}
 
+	if log == nil {
+		log = newNoOpNotifyLog()
+	}
+
 	go func() {
 		defer func() {
 			err := watcher.Close()
