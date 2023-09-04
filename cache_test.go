@@ -59,19 +59,6 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, 2, timesCalled)
 }
 
-func TestValue(t *testing.T) {
-	const expected = "a string"
-	cache := Value(expected)
-	val, err := cache.Get()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, val)
-
-	cache.Invalidate()
-	val, err = cache.Get()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, val)
-}
-
 func TestCache_SetTTL(t *testing.T) {
 	const (
 		ttl = 50 * time.Millisecond

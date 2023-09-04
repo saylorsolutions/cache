@@ -12,8 +12,8 @@ import (
 )
 
 // NewReaderCache returns a cache of a type extracted from the watched file.
-// Whatever type is produced from readFunc will be the type of the [cache.Cache], which makes this useful for unmarshalling a file's contents into a user defined type.
-func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(io.Reader) (T, error), log NotifyLog) (*cacheit.Cache[T], error) {
+// Whatever type is produced from readFunc will be the type of the [cache.Value], which makes this useful for unmarshalling a file's contents into a user defined type.
+func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(io.Reader) (T, error), log NotifyLog) (*cacheit.Value[T], error) {
 	orig := filename
 	filename, err := filepath.Abs(filename)
 	if err != nil {
