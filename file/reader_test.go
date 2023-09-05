@@ -17,6 +17,8 @@ type _testData struct {
 }
 
 func TestNewReaderCache(t *testing.T) {
+	var timesFetched int
+
 	tmp, err := os.MkdirTemp("", "NewReaderCache-*")
 	require.NoError(t, err)
 	defer func() {
@@ -28,13 +30,27 @@ func TestNewReaderCache(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	cache, err := NewReaderCache[_testData](ctx, filename, func(reader io.Reader) (_testData, error) {
+		timesFetched++
 		var data _testData
 		err := json.NewDecoder(reader).Decode(&data)
 		return data, err
 	}, testingLog(t))
 	assert.NoError(t, err)
+	assert.Equal(t, 0, timesFetched, "Should not have fetched yet, since the reader cache is lazy initialized")
 
 	data, err := cache.Get()
 	assert.NoError(t, err)
 	assert.Equal(t, _testData{Name: "Go", Desc: "A super cool language and ecosystem"}, data)
+	assert.Equal(t, 1, timesFetched, "Should have fetched once")
+
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	assert.Equal(t, 1, timesFetched, "Data should still be cached at this point")
+	cache.Invalidate()
+
+	data, err = cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, _testData{Name: "Go", Desc: "A super cool language and ecosystem"}, data)
+	assert.Equal(t, 2, timesFetched, "Invalidation should have resulted in another fetch with the same data")
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	cacheit "github.com/saylorsolutions/cache"
+	"github.com/saylorsolutions/cache"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,7 +13,7 @@ import (
 
 // NewReaderCache returns a cache of a type extracted from the watched file.
 // Whatever type is produced from readFunc will be the type of the [cache.Value], which makes this useful for unmarshalling a file's contents into a user defined type.
-func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(io.Reader) (T, error), log NotifyLog) (*cacheit.Value[T], error) {
+func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(io.Reader) (T, error), log NotifyLog) (*cache.Value[T], error) {
 	orig := filename
 	filename, err := filepath.Abs(filename)
 	if err != nil {
@@ -26,10 +26,14 @@ func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(i
 	if fi.IsDir() {
 		return nil, errors.New("unable to cache directories")
 	}
-	loader := cacheit.LoaderFunc[T](func() (T, error) {
+
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+	loader := cache.LoaderFunc[T](func() (T, error) {
 		var t T
 		f, err := os.Open(filename)
 		if err != nil {
+			cancel()
 			return t, fmt.Errorf("failed to open file '%s' for reading: %w", filename, err)
 		}
 		defer func() {
@@ -38,11 +42,12 @@ func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(i
 
 		t, err = readFunc(f)
 		if err != nil {
+			cancel()
 			return t, fmt.Errorf("failed to read file '%s' contents: %w", filename, err)
 		}
 		return t, nil
 	})
-	cache := cacheit.New(loader)
+	_cache := cache.New(loader)
 
 	watchDir := filepath.Dir(filename)
 	watcher, err := fsnotify.NewWatcher()
@@ -76,11 +81,13 @@ func NewReaderCache[T any](ctx context.Context, filename string, readFunc func(i
 					continue
 				}
 				log.Event(evt)
-				cache.Invalidate()
+				// Any change could indicate the need for a reload.
+				// The loader will cancel the context if there's a hard stop error, so we don't need to handle the various Op cases here.
+				_cache.Invalidate()
 			case err := <-watcher.Errors:
 				log.Error(fmt.Errorf("error watching cache file '%s': %w", filename, err))
 			}
 		}
 	}()
-	return cache, nil
+	return _cache, nil
 }
