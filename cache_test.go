@@ -153,3 +153,78 @@ func TestNewWithTTL_Override(t *testing.T) {
 	assert.Equal(t, "string", s)
 	assert.Equal(t, 2, timesCalled, "1 minute TTL should have been overridden by loader")
 }
+
+func TestValue_EnableGetTTLRefresh(t *testing.T) {
+	const (
+		ttl = 50 * time.Millisecond
+	)
+	var (
+		timesCalled int
+	)
+
+	cache, err := NewEager(func() (string, error) {
+		timesCalled++
+		return "string", nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, timesCalled)
+	cache.SetTTL(ttl)
+	cache.EnableGetTTLRefresh()
+
+	s, err := cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, 1, timesCalled)
+
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	assert.Equal(t, 1, timesCalled)
+	time.Sleep(2 * ttl)
+
+	s, err = cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, 2, timesCalled)
+}
+
+func TestValue_RemoveTTL(t *testing.T) {
+	const (
+		ttl = 50 * time.Millisecond
+	)
+	var (
+		timesCalled int
+	)
+
+	cache, err := NewEager(func() (string, error) {
+		timesCalled++
+		return "string", nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, timesCalled)
+	cache.SetTTL(ttl)
+	cache.EnableGetTTLRefresh()
+
+	s, err := cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, 1, timesCalled)
+
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	_, _ = cache.Get()
+	assert.Equal(t, 1, timesCalled)
+	cache.RemoveTTL()
+	time.Sleep(2 * ttl)
+
+	s, err = cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, 1, timesCalled)
+
+	cache.Invalidate()
+	s, err = cache.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, 2, timesCalled)
+}
