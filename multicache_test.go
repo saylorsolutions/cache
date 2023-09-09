@@ -141,9 +141,6 @@ func TestMultiCache_Invalidate(t *testing.T) {
 		}
 		return nil, errors.New("not found")
 	})
-	mc.OnInvalidate("jen", func() {
-		timesInvalidated++
-	})
 	assert.Equal(t, 0, timesFetched)
 	assert.Equal(t, 0, timesInvalidated)
 
@@ -151,6 +148,9 @@ func TestMultiCache_Invalidate(t *testing.T) {
 	_, _ = mc.Get("jen")
 	_, _ = mc.Get("jen")
 	assert.Equal(t, 1, timesFetched, "only the first search for Jen should increment the fetch count")
+	mc.OnInvalidate("jen", func() {
+		timesInvalidated++
+	})
 
 	_, _ = mc.Get("bob")
 	assert.Equal(t, 2, timesFetched, "searching for Bob should increment the fetch count, since it's a new record")
@@ -164,7 +164,7 @@ func TestMultiCache_Invalidate(t *testing.T) {
 	assert.Equal(t, 0, timesInvalidated, "Jen should have never been invalidated")
 	mc.Invalidate("jen")
 	assert.Equal(t, 3, timesFetched, "No load should happen after Invalidate")
-	assert.Equal(t, 0, timesInvalidated, "Jen should be considered invalid now")
+	assert.Equal(t, 1, timesInvalidated, "Jen should be considered invalid now")
 }
 
 func TestMultiCache_Preheat(t *testing.T) {

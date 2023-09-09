@@ -121,7 +121,7 @@ func (c *Value[T]) Invalidate() {
 }
 
 // OnInvalidate allows reacting to Invalidate being called on a Value.
-// This can be useful in cases where a Value's validity is considered an event where some component of an application needs to be reinitialized.
+// This can be useful in cases where a change in a Value's validity is considered an event where some component of an application needs to be reinitialized.
 // This pairs well with a context.CancelFunc.
 //
 // Note that the given function is only called when Invalidate is called, not when a Value's expiration has been reached.
