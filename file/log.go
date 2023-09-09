@@ -6,6 +6,7 @@ import (
 )
 
 // NotifyLog provides a way for filesystem changes to be logged.
+// This allows for easily plugging in your logger of choice.
 type NotifyLog interface {
 	Event(event fsnotify.Event)
 	UnrelatedEvent(event fsnotify.Event)

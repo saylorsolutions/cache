@@ -19,7 +19,7 @@ type MultiCache[K comparable, V any] struct {
 }
 
 // NewMulti will create a new MultiCache with the given loader.
-// A MultiCache may be composed of other MultiCache in the case where a top level cache with heterogeneous values is needed.
+// A MultiCache may be composed of other MultiCache in the case where logical grouping of cached values is needed.
 // If the loader is nil, then this function will panic.
 func NewMulti[K comparable, V any](loader MultiLoaderFunc[K, V]) *MultiCache[K, V] {
 	if loader == nil {
@@ -86,6 +86,19 @@ func (m *MultiCache[K, V]) Invalidate(key K) {
 		return
 	}
 	c.Invalidate()
+	delete(m.values, key)
+}
+
+// OnInvalidate sets an OnInvalidateFunc on the Value referenced by key.
+// If no Value is associated to the given key, then no action is taken.
+func (m *MultiCache[K, V]) OnInvalidate(key K, invalidateFunc OnInvalidateFunc) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	c, ok := m.values[key]
+	if !ok {
+		return
+	}
+	c.OnInvalidate(invalidateFunc)
 }
 
 // SetTTLPolicy sets the time to live policy for all internal Value values after they are retrieved.

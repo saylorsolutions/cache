@@ -17,7 +17,10 @@ type _testData struct {
 }
 
 func TestNewReaderCache(t *testing.T) {
-	var timesFetched int
+	var (
+		timesFetched     int
+		timesInvalidated int
+	)
 
 	tmp, err := os.MkdirTemp("", "NewReaderCache-*")
 	require.NoError(t, err)
@@ -37,20 +40,27 @@ func TestNewReaderCache(t *testing.T) {
 	}, testingLog(t))
 	assert.NoError(t, err)
 	assert.Equal(t, 0, timesFetched, "Should not have fetched yet, since the reader cache is lazy initialized")
+	cache.OnInvalidate(func() {
+		timesInvalidated++
+	})
 
 	data, err := cache.Get()
 	assert.NoError(t, err)
 	assert.Equal(t, _testData{Name: "Go", Desc: "A super cool language and ecosystem"}, data)
 	assert.Equal(t, 1, timesFetched, "Should have fetched once")
+	assert.Equal(t, 0, timesInvalidated, "Cache should not have been invalidated yet")
 
 	_, _ = cache.Get()
 	_, _ = cache.Get()
 	_, _ = cache.Get()
 	assert.Equal(t, 1, timesFetched, "Data should still be cached at this point")
+	assert.Equal(t, 0, timesInvalidated, "Cache should not have been invalidated yet")
 	cache.Invalidate()
+	assert.Equal(t, 1, timesInvalidated, "Invalidate func should have been called now")
 
 	data, err = cache.Get()
 	assert.NoError(t, err)
 	assert.Equal(t, _testData{Name: "Go", Desc: "A super cool language and ecosystem"}, data)
 	assert.Equal(t, 2, timesFetched, "Invalidation should have resulted in another fetch with the same data")
+	assert.Equal(t, 1, timesInvalidated, "No further Invalidate calls should have happened")
 }
