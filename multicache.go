@@ -89,6 +89,18 @@ func (m *MultiCache[K, V]) Invalidate(key K) {
 	delete(m.values, key)
 }
 
+// OnInvalidate sets an OnInvalidateFunc on the Value referenced by key.
+// If no Value is associated to the given key, then no action is taken.
+func (m *MultiCache[K, V]) OnInvalidate(key K, invalidateFunc OnInvalidateFunc) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	c, ok := m.values[key]
+	if !ok {
+		return
+	}
+	c.OnInvalidate(invalidateFunc)
+}
+
 // SetTTLPolicy sets the time to live policy for all internal Value values after they are retrieved.
 // By default, a MultiCache value will not invalidate itself.
 // A TTL policy must be set prior to retrieval or preheating for any value to invalidate itself.

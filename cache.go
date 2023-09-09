@@ -9,6 +9,10 @@ import (
 // LoaderFunc is a function that loads data of type T.
 type LoaderFunc[T any] func() (T, error)
 
+// OnInvalidateFunc is a function that will be called when Invalidate is called.
+// If no OnInvalidateFunc is set in a Value, then no action will be taken.
+type OnInvalidateFunc = func()
+
 // Value is a struct that contains a value of type T.
 // If the value is nil, then its LoaderFunc will be called.
 // By default, a cached Value will not invalidate itself.
@@ -23,6 +27,7 @@ type Value[T any] struct {
 	ttl          time.Duration
 	expiration   time.Time
 	getRefreshes bool
+	onInvalidate OnInvalidateFunc
 }
 
 func (c *Value[T]) cacheExpired() bool {
@@ -111,6 +116,20 @@ func (c *Value[T]) Invalidate() {
 	defer c.mux.Unlock()
 	c.expiration = time.Time{}
 	c.val = nil
+	if c.onInvalidate != nil {
+		c.onInvalidate()
+	}
+}
+
+// OnInvalidate allows reacting to Invalidate being called on a Value.
+// This can be useful in cases where a Value's validity is considered an event where some component of an application needs to be reinitialized.
+// This pairs well with a context.CancelFunc.
+//
+// Note that the given function is only called when Invalidate is called, not when a Value's expiration has been reached.
+func (c *Value[T]) OnInvalidate(fn OnInvalidateFunc) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	c.onInvalidate = fn
 }
 
 // SetTTL sets the duration that a cached value will be considered valid.
