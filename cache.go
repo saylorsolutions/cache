@@ -10,7 +10,6 @@ import (
 type LoaderFunc[T any] func() (T, error)
 
 // OnInvalidateFunc is a function that will be called when Invalidate is called.
-// If no OnInvalidateFunc is set in a Value, then no action will be taken.
 type OnInvalidateFunc = func()
 
 // Value is a struct that contains a value of type T.
