@@ -3,12 +3,16 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 type _testData struct {
@@ -63,4 +67,57 @@ func TestNewReaderCache(t *testing.T) {
 	assert.Equal(t, _testData{Name: "Go", Desc: "A super cool language and ecosystem"}, data)
 	assert.Equal(t, 2, timesFetched, "Invalidation should have resulted in another fetch with the same data")
 	assert.Equal(t, 1, timesInvalidated, "No further Invalidate calls should have happened")
+}
+
+func ExampleNewReaderCache() {
+	dir, cleanup := _mkTmp()
+	defer cleanup()
+	dataFile := filepath.Join(dir, "test.json")
+
+	type myData struct {
+		A string `json:"a"`
+		B string `json:"b"`
+	}
+	err := os.WriteFile(dataFile, []byte(`{"a":"a","b":"b"}`), 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	val, err := NewReaderCache[myData](ctx, dataFile, func(reader io.Reader) (myData, error) {
+		var data myData
+		err := json.NewDecoder(reader).Decode(&data)
+		return data, err
+	}, StdLog())
+	val.OnInvalidate(func() {
+		fmt.Println("data invalidated")
+		cancel()
+	})
+
+	data, err := val.Get()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("A:%s,B:%s\n", data.A, data.B)
+	val.Invalidate()
+	<-ctx.Done()
+	if !errors.Is(ctx.Err(), context.Canceled) {
+		panic("Context should have been cancelled")
+	}
+
+	// Output:
+	// A:a,B:b
+	// data invalidated
+}
+
+func _mkTmp() (string, func()) {
+	dir, err := os.MkdirTemp("", "mktmp_*")
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Using temp dir:", dir)
+	return dir, func() {
+		err := os.RemoveAll(dir)
+		log.Println("Removed temp dir, err:", err)
+	}
 }
