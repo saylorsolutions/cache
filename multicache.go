@@ -57,6 +57,15 @@ func (m *MultiCache[K, V]) Get(key K) (V, error) {
 	return c.Get()
 }
 
+// MustGet does the same thing as Get, but it will panic if an error occurs.
+func (m *MultiCache[K, V]) MustGet(key K) V {
+	val, err := m.Get(key)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func (m *MultiCache[K, V]) populate(key K) {
 	m.lock.Lock()
 	defer m.lock.Unlock()

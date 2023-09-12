@@ -75,6 +75,15 @@ func (c *Value[T]) Get() (T, error) {
 	return c.load()
 }
 
+// MustGet does the same thing as Get, but it will panic if an error occurs.
+func (c *Value[T]) MustGet() T {
+	val, err := c.Get()
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func (c *Value[T]) refreshTimer() {
 	c.mux.RLock()
 	ttl := c.ttl
