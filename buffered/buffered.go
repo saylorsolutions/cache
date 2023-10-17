@@ -8,14 +8,14 @@ import (
 
 type MultiCache[K comparable, V any] struct {
 	readCache   *cache.MultiCache[K, V]
-	writeBuffer *cache.MultiCache[K, *TypedAtomic[V]]
+	writeBuffer *cache.MultiCache[K, *typedAtomic[V]]
 }
 
 // NewMulti will create a new MultiCache.
 // A MultiCache may be composed of other MultiCache in the case where logical grouping of cached values is needed.
 func NewMulti[K comparable, V any]() *MultiCache[K, V] {
-	buffer := cache.NewMulti[K, *TypedAtomic[V]](func(key K) (*TypedAtomic[V], error) {
-		val := new(TypedAtomic[V])
+	buffer := cache.NewMulti[K, *typedAtomic[V]](func(key K) (*typedAtomic[V], error) {
+		val := new(typedAtomic[V])
 		var mt V
 		val.Store(mt)
 		return val, nil

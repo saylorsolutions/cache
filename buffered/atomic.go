@@ -2,14 +2,14 @@ package buffered
 
 import "sync/atomic"
 
-type TypedAtomic[T any] struct {
+type typedAtomic[T any] struct {
 	val atomic.Value
 }
 
-func (a *TypedAtomic[T]) Load() T {
+func (a *typedAtomic[T]) Load() T {
 	return a.val.Load().(T)
 }
 
-func (a *TypedAtomic[T]) Store(newVal T) {
+func (a *typedAtomic[T]) Store(newVal T) {
 	a.val.Store(newVal)
 }
