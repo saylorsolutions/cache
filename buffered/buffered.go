@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+// MultiCache provides a double-buffered cache implementation.
+// Reads will use the read cache, and writes are dispatched to the write buffer.
+// Any missed reads will pass through to the write buffer.
+// Setting a value in a MultiCache will invalidate the key in the read cache.
 type MultiCache[K comparable, V any] struct {
 	readCache   *cache.MultiCache[K, V]
 	writeBuffer *cache.MultiCache[K, *typedAtomic[V]]
